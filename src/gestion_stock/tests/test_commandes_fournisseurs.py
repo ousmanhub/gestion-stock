@@ -1,6 +1,6 @@
 def test_creer_commande(client, commercant, produit, entrepot):
     response = client.post(
-        f"/commercants/{commercant['id']}/commandes-fournisseurs",
+        f"/commercants/{commercant['id']}/commandes-fournisseurs/",
         headers={"X-API-Key": commercant["api_key"]},
         json={
             "produit_id": produit["id"],
@@ -21,7 +21,7 @@ def test_creer_commande(client, commercant, produit, entrepot):
 
 def test_modifier_commande_brouillon(client, commercant, produit, entrepot):
     cmd = client.post(
-        f"/commercants/{commercant['id']}/commandes-fournisseurs",
+        f"/commercants/{commercant['id']}/commandes-fournisseurs/",
         headers={"X-API-Key": commercant["api_key"]},
         json={
             "produit_id": produit["id"],
@@ -41,7 +41,7 @@ def test_modifier_commande_brouillon(client, commercant, produit, entrepot):
 
 def test_envoyer_commande(client, commercant, produit, entrepot):
     cmd = client.post(
-        f"/commercants/{commercant['id']}/commandes-fournisseurs",
+        f"/commercants/{commercant['id']}/commandes-fournisseurs/",
         headers={"X-API-Key": commercant["api_key"]},
         json={
             "produit_id": produit["id"],
@@ -60,7 +60,7 @@ def test_envoyer_commande(client, commercant, produit, entrepot):
 
 def test_receptionner_commande_cree_mouvement(client, commercant, produit, entrepot):
     cmd = client.post(
-        f"/commercants/{commercant['id']}/commandes-fournisseurs",
+        f"/commercants/{commercant['id']}/commandes-fournisseurs/",
         headers={"X-API-Key": commercant["api_key"]},
         json={
             "produit_id": produit["id"],
@@ -97,7 +97,7 @@ def test_receptionner_commande_cree_mouvement(client, commercant, produit, entre
 
 def test_reception_trop_elevee_refusee(client, commercant, produit, entrepot):
     cmd = client.post(
-        f"/commercants/{commercant['id']}/commandes-fournisseurs",
+        f"/commercants/{commercant['id']}/commandes-fournisseurs/",
         headers={"X-API-Key": commercant["api_key"]},
         json={
             "produit_id": produit["id"],
@@ -120,7 +120,7 @@ def test_reception_trop_elevee_refusee(client, commercant, produit, entrepot):
 
 def test_employe_ne_peut_pas_creer_commande(client, employe, produit, entrepot):
     response = client.post(
-        f"/commercants/{employe['commercant_id']}/commandes-fournisseurs",
+        f"/commercants/{employe['commercant_id']}/commandes-fournisseurs/",
         headers={"X-API-Key": employe["api_key"]},
         json={
             "produit_id": produit["id"],
@@ -134,7 +134,7 @@ def test_employe_ne_peut_pas_creer_commande(client, employe, produit, entrepot):
 
 def test_annuler_commande(client, commercant, produit, entrepot):
     cmd = client.post(
-        f"/commercants/{commercant['id']}/commandes-fournisseurs",
+        f"/commercants/{commercant['id']}/commandes-fournisseurs/",
         headers={"X-API-Key": commercant["api_key"]},
         json={
             "produit_id": produit["id"],
