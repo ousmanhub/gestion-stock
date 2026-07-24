@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { endpoints, logout } from '../api'
+import { login } from '../api'
 
 export default function Login() {
   const [apiKey, setApiKey] = useState('')
@@ -11,18 +11,20 @@ export default function Login() {
     e.preventDefault()
     setError('')
     try {
-      await endpoints.health()
-      const response = await endpoints.commercants.list()
-      if (response.status === 200) {
-        localStorage.setItem('api_key', apiKey)
+      console.log('Tentative login avec clé:', apiKey.slice(0, 6) + '...')
+      const ok = await login(apiKey)
+      console.log('Résultat login:', ok)
+      if (ok) {
         navigate('/')
+      } else {
+        setError('Clé API invalide')
       }
     } catch (err) {
-      setError('Clé API invalide ou serveur inaccessible')
+      console.error('Erreur login:', err)
+      const msg = err.response?.status === 401 ? 'Clé API invalide' : `Erreur: ${err.message}`
+      setError(msg)
     }
   }
-
-  logout()
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">

@@ -18,11 +18,12 @@ api.interceptors.request.use((config) => {
 export default api
 
 export async function login(apiKey) {
-  const response = await api.get('/commercants/', { headers: { 'X-API-Key': apiKey } })
+  localStorage.setItem('api_key', apiKey)
+  const response = await api.get('/commercants/')
   if (response.status === 200) {
-    localStorage.setItem('api_key', apiKey)
     return true
   }
+  localStorage.removeItem('api_key')
   return false
 }
 
