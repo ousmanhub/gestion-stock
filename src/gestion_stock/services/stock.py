@@ -1,8 +1,8 @@
 from decimal import Decimal
 
-from sqlmodel import Session, select
+from sqlmodel import Session, func, select
 
-from gestion_stock.models import MouvementStock, TypeMouvement
+from gestion_stock.models import MouvementStock, Reservation, StatutReservation, TypeMouvement
 
 
 def stock_produit_entrepot(session: Session, produit_id: int, entrepot_id: int) -> Decimal:
@@ -42,7 +42,7 @@ def valorisation_fifo(session: Session, produit_id: int, entrepot_id: int) -> tu
         ).order_by(MouvementStock.date_mouvement)
     ).all()
 
-    lots: list[tuple[Decimal, Decimal]] = []  # (quantité restante, prix unitaire)
+    lots: list[tuple[Decimal, Decimal]] = []
     for m in mouvements:
         if m.type_mouvement in (TypeMouvement.ENTREE, TypeMouvement.TRANSFERT_ENTREE, TypeMouvement.AJUSTEMENT):
             prix = m.prix_unitaire_mouvement or Decimal("0.00")
@@ -64,3 +64,16 @@ def valorisation_fifo(session: Session, produit_id: int, entrepot_id: int) -> tu
         total_valeur += quantite * prix
         total_quantite += quantite
     return total_valeur, total_quantite
+
+
+def stock_disponible(session: Session, produit_id: int, entrepot_id: int) -> Decimal:
+    theorique = stock_produit_entrepot(session, produit_id, entrepot_id)
+    reserve = session.exec(
+        select(func.coalesce(func.sum(Reservation.quantite - Reservation.quantite_honoree), Decimal("0.00")))
+        .where(
+            Reservation.produit_id == produit_id,
+            Reservation.entrepot_id == entrepot_id,
+            Reservation.statut == StatutReservation.EN_COURS,
+        )
+    ).one()
+    return theorique - reserve

@@ -13,7 +13,9 @@ from gestion_stock.models import (
     Entrepot,
     MouvementStock,
     Produit,
+    Reservation,
     RoleUtilisateur,
+    StatutReservation,
     TypeMouvement,
     Utilisateur,
 )
@@ -31,6 +33,7 @@ class MouvementCreate(BaseModel):
     date_peremption: date | None = None
     reference_document: str | None = None
     notes: str | None = None
+    reservation_id: int | None = None
 
 
 def _verifier_commercant(session: Session, commercant_id: int) -> Commercant:
@@ -76,6 +79,20 @@ def create_mouvement(
     _verifier_produit(session, commercant_id, data.produit_id)
     _verifier_entrepot(session, commercant_id, data.entrepot_id)
 
+    reservation: Reservation | None = None
+    if data.reservation_id:
+        reservation = session.exec(
+            select(Reservation).where(
+                Reservation.id == data.reservation_id,
+                Reservation.commercant_id == commercant_id,
+                Reservation.produit_id == data.produit_id,
+                Reservation.entrepot_id == data.entrepot_id,
+                Reservation.statut == StatutReservation.EN_COURS,
+            )
+        ).first()
+        if not reservation:
+            raise HTTPException(status_code=404, detail="Réservation non trouvée ou non compatible")
+
     if data.type_mouvement not in (TypeMouvement.ENTREE, TypeMouvement.SORTIE, TypeMouvement.AJUSTEMENT):
         raise HTTPException(
             status_code=400,
@@ -94,10 +111,25 @@ def create_mouvement(
         stock_apres = data.quantite
         mouvement_quantite = stock_apres - stock_avant
 
+    if reservation:
+        reste_a_honorer = reservation.quantite - reservation.quantite_honoree
+        if data.type_mouvement != TypeMouvement.SORTIE:
+            raise HTTPException(status_code=400, detail="Seule une sortie peut être liée à une réservation")
+        if data.quantite > reste_a_honorer:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Quantité sortie {data.quantite} supérieure au reste de la réservation {reste_a_honorer}",
+            )
+        reservation.quantite_honoree += data.quantite
+        if reservation.quantite_honoree >= reservation.quantite:
+            reservation.statut = StatutReservation.HONOREE
+        session.add(reservation)
+
     mouvement = MouvementStock(
         commercant_id=commercant_id,
         produit_id=data.produit_id,
         entrepot_id=data.entrepot_id,
+        reservation_id=data.reservation_id,
         type_mouvement=data.type_mouvement,
         quantite=mouvement_quantite,
         prix_unitaire_mouvement=data.prix_unitaire_mouvement,

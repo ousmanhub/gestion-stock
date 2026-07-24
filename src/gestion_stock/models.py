@@ -19,6 +19,12 @@ class RoleUtilisateur(StrEnum):
     EMPLOYE = "employe"
 
 
+class StatutReservation(StrEnum):
+    EN_COURS = "en_cours"
+    HONOREE = "honoree"
+    ANNULEE = "annulee"
+
+
 class Commercant(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     nom: str
@@ -72,6 +78,7 @@ class MouvementStock(SQLModel, table=True):
     produit_id: int = Field(foreign_key="produit.id", index=True)
     entrepot_id: int = Field(foreign_key="entrepot.id", index=True)
     entrepot_destination_id: int | None = Field(default=None, foreign_key="entrepot.id", index=True)
+    reservation_id: int | None = Field(default=None, foreign_key="reservation.id", index=True)
     type_mouvement: TypeMouvement
     quantite: Decimal = Field(max_digits=12, decimal_places=2)
     prix_unitaire_mouvement: Decimal | None = Field(default=None, max_digits=12, decimal_places=2)
@@ -79,3 +86,17 @@ class MouvementStock(SQLModel, table=True):
     reference_document: str | None = None
     notes: str | None = None
     date_mouvement: datetime = Field(default_factory=datetime.utcnow, index=True)
+
+
+class Reservation(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    commercant_id: int = Field(foreign_key="commercant.id", index=True)
+    produit_id: int = Field(foreign_key="produit.id", index=True)
+    entrepot_id: int = Field(foreign_key="entrepot.id", index=True)
+    quantite: Decimal = Field(max_digits=12, decimal_places=2)
+    quantite_honoree: Decimal = Field(default=Decimal("0.00"), max_digits=12, decimal_places=2)
+    statut: StatutReservation = StatutReservation.EN_COURS
+    reference_client: str | None = None
+    reference_dossier: str | None = None
+    notes: str | None = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
