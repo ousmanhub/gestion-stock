@@ -43,32 +43,64 @@ def commercant_fixture(client):
 
 @pytest.fixture(name="produit")
 def produit_fixture(client, commercant):
-    response = client.post(f"/commercants/{commercant['id']}/produits/", json={
-        "sku": "SKU-TEST-001",
-        "libelle": "Réfrigérateur 300L",
-        "categorie": "Électroménager",
-        "unite": "pièce",
-        "prix_unitaire": "350.00",
-        "stock_minimal": "5.00",
-    })
+    response = client.post(
+        f"/commercants/{commercant['id']}/produits/",
+        headers={"X-API-Key": commercant["api_key"]},
+        json={
+            "sku": "SKU-TEST-001",
+            "libelle": "Réfrigérateur 300L",
+            "categorie": "Électroménager",
+            "unite": "pièce",
+            "prix_unitaire": "350.00",
+            "stock_minimal": "5.00",
+        },
+    )
     return response.json()
 
 
 @pytest.fixture(name="entrepot")
 def entrepot_fixture(client, commercant):
-    response = client.post(f"/commercants/{commercant['id']}/entrepots/", json={
-        "nom": "Entrepôt Test",
-        "adresse": "12 avenue de la division Leclerc, 93700 Drancy",
-        "contact": "logistique@test.com",
-    })
+    response = client.post(
+        f"/commercants/{commercant['id']}/entrepots/",
+        headers={"X-API-Key": commercant["api_key"]},
+        json={
+            "nom": "Entrepôt Test",
+            "adresse": "12 avenue de la division Leclerc, 93700 Drancy",
+            "contact": "logistique@test.com",
+        },
+    )
     return response.json()
 
 
 @pytest.fixture(name="entrepot_dest")
 def entrepot_dest_fixture(client, commercant):
-    response = client.post(f"/commercants/{commercant['id']}/entrepots/", json={
-        "nom": "Entrepôt Destination",
-        "adresse": "20 rue de la Livraison, 75002 Paris",
-        "contact": "dest@test.com",
-    })
+    response = client.post(
+        f"/commercants/{commercant['id']}/entrepots/",
+        headers={"X-API-Key": commercant["api_key"]},
+        json={
+            "nom": "Entrepôt Destination",
+            "adresse": "20 rue de la Livraison, 75002 Paris",
+            "contact": "dest@test.com",
+        },
+    )
+    return response.json()
+
+
+@pytest.fixture(name="employe")
+def employe_fixture(client, commercant):
+    response = client.post(
+        f"/commercants/{commercant['id']}/utilisateurs",
+        headers={"X-API-Key": commercant["api_key"]},
+        json={"nom": "Employé Test", "email": "emp@test.com", "role": "employe"},
+    )
+    return response.json()
+
+
+@pytest.fixture(name="responsable")
+def responsable_fixture(client, commercant):
+    response = client.post(
+        f"/commercants/{commercant['id']}/utilisateurs",
+        headers={"X-API-Key": commercant["api_key"]},
+        json={"nom": "Responsable Test", "email": "resp@test.com", "role": "responsable_logistique"},
+    )
     return response.json()

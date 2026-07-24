@@ -1,13 +1,36 @@
 
+from datetime import date
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
+from gestion_stock.auth import get_current_user, require_role, verifier_acces_tenant
 from gestion_stock.database import get_session
-from gestion_stock.models import Commercant, Entrepot, MouvementStock, Produit, TypeMouvement
-from gestion_stock.schemas import MouvementCreate
+from gestion_stock.models import (
+    Commercant,
+    Entrepot,
+    MouvementStock,
+    Produit,
+    RoleUtilisateur,
+    TypeMouvement,
+    Utilisateur,
+)
 from gestion_stock.services.stock import stock_produit_entrepot
 
 router = APIRouter()
+
+
+class MouvementCreate(BaseModel):
+    produit_id: int
+    entrepot_id: int
+    type_mouvement: TypeMouvement
+    quantite: Decimal
+    prix_unitaire_mouvement: Decimal | None = None
+    date_peremption: date | None = None
+    reference_document: str | None = None
+    notes: str | None = None
 
 
 def _verifier_commercant(session: Session, commercant_id: int) -> Commercant:
@@ -19,11 +42,7 @@ def _verifier_commercant(session: Session, commercant_id: int) -> Commercant:
 
 def _verifier_produit(session: Session, commercant_id: int, produit_id: int) -> Produit:
     produit = session.exec(
-        select(Produit).where(
-            Produit.id == produit_id,
-            Produit.commercant_id == commercant_id,
-            Produit.actif,
-        )
+        select(Produit).where(Produit.id == produit_id, Produit.commercant_id == commercant_id, Produit.actif)
     ).first()
     if not produit:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
@@ -32,11 +51,7 @@ def _verifier_produit(session: Session, commercant_id: int, produit_id: int) -> 
 
 def _verifier_entrepot(session: Session, commercant_id: int, entrepot_id: int) -> Entrepot:
     entrepot = session.exec(
-        select(Entrepot).where(
-            Entrepot.id == entrepot_id,
-            Entrepot.commercant_id == commercant_id,
-            Entrepot.actif,
-        )
+        select(Entrepot).where(Entrepot.id == entrepot_id, Entrepot.commercant_id == commercant_id, Entrepot.actif)
     ).first()
     if not entrepot:
         raise HTTPException(status_code=404, detail="Entrepôt non trouvé")
@@ -47,9 +62,17 @@ def _verifier_entrepot(session: Session, commercant_id: int, entrepot_id: int) -
 def create_mouvement(
     commercant_id: int,
     data: MouvementCreate,
+    user: Utilisateur = Depends(
+        require_role(
+            RoleUtilisateur.COMMERCANT,
+            RoleUtilisateur.RESPONSABLE_LOGISTIQUE,
+            RoleUtilisateur.EMPLOYE,
+        )
+    ),
     session: Session = Depends(get_session),
 ):
     _verifier_commercant(session, commercant_id)
+    verifier_acces_tenant(user, commercant_id)
     _verifier_produit(session, commercant_id, data.produit_id)
     _verifier_entrepot(session, commercant_id, data.entrepot_id)
 
@@ -107,6 +130,7 @@ def create_mouvement(
 @router.get("/", response_model=list[MouvementStock])
 def list_mouvements(
     commercant_id: int,
+    user: Utilisateur = Depends(get_current_user),
     session: Session = Depends(get_session),
     produit_id: int | None = None,
     entrepot_id: int | None = None,
@@ -114,6 +138,7 @@ def list_mouvements(
     limit: int = 100,
 ):
     _verifier_commercant(session, commercant_id)
+    verifier_acces_tenant(user, commercant_id)
     query = select(MouvementStock).where(MouvementStock.commercant_id == commercant_id)
     if produit_id:
         query = query.where(MouvementStock.produit_id == produit_id)

@@ -2,8 +2,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
+from gestion_stock.auth import get_current_user, require_role, verifier_acces_tenant
 from gestion_stock.database import get_session
-from gestion_stock.models import Commercant, Entrepot
+from gestion_stock.models import Commercant, Entrepot, RoleUtilisateur, Utilisateur
 
 router = APIRouter()
 
@@ -16,8 +17,14 @@ def _verifier_commercant(session: Session, commercant_id: int) -> Commercant:
 
 
 @router.post("/", response_model=Entrepot, status_code=status.HTTP_201_CREATED)
-def create_entrepot(commercant_id: int, entrepot: Entrepot, session: Session = Depends(get_session)):
+def create_entrepot(
+    commercant_id: int,
+    entrepot: Entrepot,
+    user: Utilisateur = Depends(require_role(RoleUtilisateur.COMMERCANT, RoleUtilisateur.RESPONSABLE_LOGISTIQUE)),
+    session: Session = Depends(get_session),
+):
     _verifier_commercant(session, commercant_id)
+    verifier_acces_tenant(user, commercant_id)
     entrepot.commercant_id = commercant_id
     session.add(entrepot)
     session.commit()
@@ -26,8 +33,15 @@ def create_entrepot(commercant_id: int, entrepot: Entrepot, session: Session = D
 
 
 @router.get("/", response_model=list[Entrepot])
-def list_entrepots(commercant_id: int, session: Session = Depends(get_session), skip: int = 0, limit: int = 100):
+def list_entrepots(
+    commercant_id: int,
+    user: Utilisateur = Depends(get_current_user),
+    session: Session = Depends(get_session),
+    skip: int = 0,
+    limit: int = 100,
+):
     _verifier_commercant(session, commercant_id)
+    verifier_acces_tenant(user, commercant_id)
     return session.exec(
         select(Entrepot)
         .where(Entrepot.commercant_id == commercant_id, Entrepot.actif)
@@ -37,8 +51,14 @@ def list_entrepots(commercant_id: int, session: Session = Depends(get_session), 
 
 
 @router.get("/{entrepot_id}", response_model=Entrepot)
-def get_entrepot(commercant_id: int, entrepot_id: int, session: Session = Depends(get_session)):
+def get_entrepot(
+    commercant_id: int,
+    entrepot_id: int,
+    user: Utilisateur = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
     _verifier_commercant(session, commercant_id)
+    verifier_acces_tenant(user, commercant_id)
     entrepot = session.exec(
         select(Entrepot).where(
             Entrepot.id == entrepot_id,
@@ -52,12 +72,20 @@ def get_entrepot(commercant_id: int, entrepot_id: int, session: Session = Depend
 
 
 @router.patch("/{entrepot_id}", response_model=Entrepot)
-def update_entrepot(commercant_id: int, entrepot_id: int, updates: Entrepot, session: Session = Depends(get_session)):
+def update_entrepot(
+    commercant_id: int,
+    entrepot_id: int,
+    updates: Entrepot,
+    user: Utilisateur = Depends(require_role(RoleUtilisateur.COMMERCANT, RoleUtilisateur.RESPONSABLE_LOGISTIQUE)),
+    session: Session = Depends(get_session),
+):
     _verifier_commercant(session, commercant_id)
+    verifier_acces_tenant(user, commercant_id)
     entrepot = session.exec(
         select(Entrepot).where(
             Entrepot.id == entrepot_id,
             Entrepot.commercant_id == commercant_id,
+            Entrepot.actif,
         )
     ).first()
     if not entrepot:
@@ -72,12 +100,19 @@ def update_entrepot(commercant_id: int, entrepot_id: int, updates: Entrepot, ses
 
 
 @router.delete("/{entrepot_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_entrepot(commercant_id: int, entrepot_id: int, session: Session = Depends(get_session)):
+def delete_entrepot(
+    commercant_id: int,
+    entrepot_id: int,
+    user: Utilisateur = Depends(require_role(RoleUtilisateur.COMMERCANT, RoleUtilisateur.RESPONSABLE_LOGISTIQUE)),
+    session: Session = Depends(get_session),
+):
     _verifier_commercant(session, commercant_id)
+    verifier_acces_tenant(user, commercant_id)
     entrepot = session.exec(
         select(Entrepot).where(
             Entrepot.id == entrepot_id,
             Entrepot.commercant_id == commercant_id,
+            Entrepot.actif,
         )
     ).first()
     if not entrepot:
@@ -85,3 +120,4 @@ def delete_entrepot(commercant_id: int, entrepot_id: int, session: Session = Dep
     entrepot.actif = False
     session.add(entrepot)
     session.commit()
+    return None

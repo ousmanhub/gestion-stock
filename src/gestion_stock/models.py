@@ -13,12 +13,29 @@ class TypeMouvement(StrEnum):
     TRANSFERT_ENTREE = "transfert_entree"
 
 
+class RoleUtilisateur(StrEnum):
+    COMMERCANT = "commercant"
+    RESPONSABLE_LOGISTIQUE = "responsable_logistique"
+    EMPLOYE = "employe"
+
+
 class Commercant(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     nom: str
     email: str | None = None
     telephone: str | None = None
     adresse: str | None = None
+    actif: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Utilisateur(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    commercant_id: int = Field(foreign_key="commercant.id", index=True)
+    nom: str
+    email: str | None = None
+    role: RoleUtilisateur
+    api_key: str = Field(index=True, unique=True)
     actif: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
 

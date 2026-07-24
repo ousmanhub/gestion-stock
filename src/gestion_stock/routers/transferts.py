@@ -1,13 +1,32 @@
 
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlmodel import Session
 
+from gestion_stock.auth import require_role, verifier_acces_tenant
 from gestion_stock.database import get_session
-from gestion_stock.models import Commercant, Entrepot, MouvementStock, Produit, TypeMouvement
-from gestion_stock.schemas import TransfertCreate
+from gestion_stock.models import (
+    Commercant,
+    Entrepot,
+    MouvementStock,
+    Produit,
+    RoleUtilisateur,
+    TypeMouvement,
+    Utilisateur,
+)
 from gestion_stock.services.stock import stock_produit_entrepot
 
 router = APIRouter()
+
+
+class TransfertCreate(BaseModel):
+    produit_id: int
+    entrepot_source_id: int
+    entrepot_destination_id: int
+    quantite: Decimal
+    reference_document: str | None = None
 
 
 def _verifier_commercant(session: Session, commercant_id: int) -> Commercant:
@@ -35,9 +54,17 @@ def _verifier_entrepot(session: Session, commercant_id: int, entrepot_id: int) -
 def create_transfert(
     commercant_id: int,
     data: TransfertCreate,
+    user: Utilisateur = Depends(
+        require_role(
+            RoleUtilisateur.COMMERCANT,
+            RoleUtilisateur.RESPONSABLE_LOGISTIQUE,
+            RoleUtilisateur.EMPLOYE,
+        )
+    ),
     session: Session = Depends(get_session),
 ):
     _verifier_commercant(session, commercant_id)
+    verifier_acces_tenant(user, commercant_id)
     _verifier_produit(session, commercant_id, data.produit_id)
     source = _verifier_entrepot(session, commercant_id, data.entrepot_source_id)
     dest = _verifier_entrepot(session, commercant_id, data.entrepot_destination_id)

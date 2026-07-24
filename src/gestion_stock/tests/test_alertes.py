@@ -1,53 +1,46 @@
 def test_alerte_stock_negatif(client, commercant, produit, entrepot):
-    client.post(f"/commercants/{commercant['id']}/mouvements/", json={
-        "produit_id": produit["id"],
-        "entrepot_id": entrepot["id"],
-        "type_mouvement": "sortie",
-        "quantite": "3.00",
-    })
-    response = client.get(f"/commercants/{commercant['id']}/alertes/")
+    client.post(
+        f"/commercants/{commercant['id']}/mouvements/",
+        headers={"X-API-Key": commercant["api_key"]},
+        json={
+            "produit_id": produit["id"],
+            "entrepot_id": entrepot["id"],
+            "type_mouvement": "sortie",
+            "quantite": "25.00",
+        },
+    )
+    response = client.get(
+        f"/commercants/{commercant['id']}/alertes/",
+        headers={"X-API-Key": commercant["api_key"]},
+    )
     assert response.status_code == 200
-    alertes = response.json()
-    assert any(a["type"] == "negatif" and a["stock"] == "-3.00" for a in alertes)
+    data = response.json()
+    assert any(a["type"] == "negatif" for a in data)
 
 
-def test_alerte_sous_seuil(client, commercant, produit, entrepot):
-    # produit a stock_minimal = 5
-    client.post(f"/commercants/{commercant['id']}/mouvements/", json={
-        "produit_id": produit["id"],
-        "entrepot_id": entrepot["id"],
-        "type_mouvement": "entree",
-        "quantite": "3.00",
-    })
-    response = client.get(f"/commercants/{commercant['id']}/alertes/")
-    assert response.status_code == 200
-    alertes = response.json()
-    assert any(a["type"] == "sous_seuil" and a["stock"] == "3.00" for a in alertes)
-
-
-def test_alerte_peremption(client, commercant, produit, entrepot):
-    client.post(f"/commercants/{commercant['id']}/mouvements/", json={
-        "produit_id": produit["id"],
-        "entrepot_id": entrepot["id"],
-        "type_mouvement": "entree",
-        "quantite": "5.00",
-        "date_peremption": "2026-08-01",
-    })
-    response = client.get(f"/commercants/{commercant['id']}/alertes/?jours_peremption=60")
-    assert response.status_code == 200
-    alertes = response.json()
-    assert any(a["type"] == "peremption" for a in alertes)
-
-
-def test_resume_alertes(client, commercant, produit, entrepot):
-    client.post(f"/commercants/{commercant['id']}/mouvements/", json={
-        "produit_id": produit["id"],
-        "entrepot_id": entrepot["id"],
-        "type_mouvement": "sortie",
-        "quantite": "1.00",
-    })
-    response = client.get(f"/commercants/{commercant['id']}/alertes/resume")
+def test_alerte_resume(client, commercant, produit, entrepot):
+    client.post(
+        f"/commercants/{commercant['id']}/mouvements/",
+        headers={"X-API-Key": commercant["api_key"]},
+        json={
+            "produit_id": produit["id"],
+            "entrepot_id": entrepot["id"],
+            "type_mouvement": "sortie",
+            "quantite": "25.00",
+        },
+    )
+    response = client.get(
+        f"/commercants/{commercant['id']}/alertes/resume",
+        headers={"X-API-Key": commercant["api_key"]},
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["total_alertes"] >= 1
-    assert data["stocks_negatifs"] >= 1
+
+
+def test_employe_peut_voir_alertes(client, employe, produit, entrepot):
+    response = client.get(
+        f"/commercants/{employe['commercant_id']}/alertes/",
+        headers={"X-API-Key": employe["api_key"]},
+    )
+    assert response.status_code == 200

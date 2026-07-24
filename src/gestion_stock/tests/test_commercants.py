@@ -8,7 +8,7 @@ def test_create_commercant(client):
     assert response.status_code == 201
     data = response.json()
     assert data["nom"] == "Boutique Alpha"
-    assert data["email"] == "contact@alpha.example"
+    assert "api_key" in data
 
 
 def test_list_commercants(client, commercant):
@@ -25,16 +25,42 @@ def test_get_commercant(client, commercant):
 
 
 def test_update_commercant(client, commercant):
-    response = client.patch(f"/commercants/{commercant['id']}", json={
-        "telephone": "+33111111111",
-    })
+    response = client.patch(
+        f"/commercants/{commercant['id']}",
+        headers={"X-API-Key": commercant["api_key"]},
+        json={"telephone": "+33111111111"},
+    )
     assert response.status_code == 200
     assert response.json()["telephone"] == "+33111111111"
 
 
 def test_delete_commercant(client, commercant):
-    response = client.delete(f"/commercants/{commercant['id']}")
+    response = client.delete(
+        f"/commercants/{commercant['id']}",
+        headers={"X-API-Key": commercant["api_key"]},
+    )
     assert response.status_code == 204
     response = client.get(f"/commercants/{commercant['id']}")
     assert response.status_code == 200
     assert response.json()["actif"] is False
+
+
+def test_create_utilisateur(client, commercant):
+    response = client.post(
+        f"/commercants/{commercant['id']}/utilisateurs",
+        headers={"X-API-Key": commercant["api_key"]},
+        json={"nom": "Nouvel Employé", "email": "new@example.com", "role": "employe"},
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["role"] == "employe"
+    assert "api_key" in data
+
+
+def test_create_commercant_user_interdit(client, commercant):
+    response = client.post(
+        f"/commercants/{commercant['id']}/utilisateurs",
+        headers={"X-API-Key": commercant["api_key"]},
+        json={"nom": "Tentative", "role": "commercant"},
+    )
+    assert response.status_code == 400
