@@ -27,9 +27,16 @@ export default function Entrepots() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!commercant) return
-    await endpoints.entrepots.create(commercant.id, form)
-    setForm({ nom: '', adresse: '', contact: '' })
-    await loadEntrepots(commercant.id)
+    try {
+      console.log('Création entrepôt:', form)
+      const res = await endpoints.entrepots.create(commercant.id, form)
+      console.log('Réponse création entrepôt:', res.status, res.data)
+      setForm({ nom: '', adresse: '', contact: '' })
+      await loadEntrepots(commercant.id)
+    } catch (err) {
+      console.error('Erreur création entrepôt:', err)
+      alert(err.response?.data?.detail || err.message)
+    }
   }
 
   const handleDelete = async (id) => {

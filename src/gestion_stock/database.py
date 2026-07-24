@@ -15,8 +15,12 @@ def init_db() -> None:
     SQLModel.metadata.create_all(engine)
 
 
-def get_session() -> Session:
-    return Session(engine)
+def get_session():
+    session = Session(engine)
+    try:
+        yield session
+    finally:
+        session.close()
 
 
 @contextmanager

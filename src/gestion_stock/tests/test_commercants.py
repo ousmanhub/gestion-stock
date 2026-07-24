@@ -12,7 +12,7 @@ def test_create_commercant(client):
 
 
 def test_list_commercants(client, commercant):
-    response = client.get("/commercants/")
+    response = client.get("/commercants/", headers={"X-API-Key": commercant["api_key"]})
     assert response.status_code == 200
     data = response.json()
     assert any(c["id"] == commercant["id"] for c in data)

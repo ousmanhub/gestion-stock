@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
-from gestion_stock.auth import generate_api_key, require_role, verifier_acces_tenant
+from gestion_stock.auth import generate_api_key, get_current_user, require_role, verifier_acces_tenant
 from gestion_stock.database import get_session
 from gestion_stock.models import Commercant, RoleUtilisateur, Utilisateur
 
@@ -37,8 +37,15 @@ def create_commercant(commercant: Commercant, session: Session = Depends(get_ses
 
 
 @router.get("/", response_model=list[Commercant])
-def list_commercants(session: Session = Depends(get_session), skip: int = 0, limit: int = 100):
-    return session.exec(select(Commercant).where(Commercant.actif).offset(skip).limit(limit)).all()
+def list_commercants(
+    user: Utilisateur = Depends(get_current_user),
+    session: Session = Depends(get_session),
+    skip: int = 0,
+    limit: int = 100,
+):
+    return session.exec(
+        select(Commercant).where(Commercant.id == user.commercant_id, Commercant.actif).offset(skip).limit(limit)
+    ).all()
 
 
 @router.get("/{commercant_id}", response_model=Commercant)
