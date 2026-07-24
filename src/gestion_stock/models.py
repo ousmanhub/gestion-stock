@@ -25,6 +25,14 @@ class StatutReservation(StrEnum):
     ANNULEE = "annulee"
 
 
+class StatutCommandeFournisseur(StrEnum):
+    BROUILLON = "brouillon"
+    ENVOYEE = "envoyee"
+    PARTIELLEMENT_RECUE = "partiellement_recue"
+    RECUE = "recue"
+    ANNULEE = "annulee"
+
+
 class Commercant(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     nom: str
@@ -100,3 +108,21 @@ class Reservation(SQLModel, table=True):
     reference_dossier: str | None = None
     notes: str | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class CommandeFournisseur(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    commercant_id: int = Field(foreign_key="commercant.id", index=True)
+    produit_id: int = Field(foreign_key="produit.id", index=True)
+    entrepot_destination_id: int = Field(foreign_key="entrepot.id", index=True)
+    fournisseur_nom: str
+    fournisseur_contact: str | None = None
+    quantite_commandee: Decimal = Field(max_digits=12, decimal_places=2)
+    quantite_recue: Decimal = Field(default=Decimal("0.00"), max_digits=12, decimal_places=2)
+    prix_unitaire_prevu: Decimal | None = Field(default=None, max_digits=12, decimal_places=2)
+    date_livraison_estimee: date | None = None
+    statut: StatutCommandeFournisseur = StatutCommandeFournisseur.BROUILLON
+    reference_commande: str | None = None
+    notes: str | None = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

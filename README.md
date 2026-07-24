@@ -70,6 +70,10 @@ curl -X POST http://127.0.0.1:8001/commercants/{id}/utilisateurs \
 - `POST /commercants/{id}/transferts`
 - `POST|GET /commercants/{id}/reservations`
 - `POST /commercants/{id}/reservations/{reservation_id}/annuler`
+- `POST|GET /commercants/{id}/commandes-fournisseurs`
+- `POST /commercants/{id}/commandes-fournisseurs/{commande_id}/envoyer`
+- `POST /commercants/{id}/commandes-fournisseurs/{commande_id}/receptionner`
+- `POST /commercants/{id}/commandes-fournisseurs/{commande_id}/annuler`
 - `GET /commercants/{id}/alertes`
 - `GET /commercants/{id}/alertes/resume`
 

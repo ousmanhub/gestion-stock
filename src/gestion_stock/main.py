@@ -4,7 +4,16 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 
 from gestion_stock.database import init_db
-from gestion_stock.routers import alertes, commercants, entrepots, mouvements, produits, reservations, transferts
+from gestion_stock.routers import (
+    alertes,
+    commandes_fournisseurs,
+    commercants,
+    entrepots,
+    mouvements,
+    produits,
+    reservations,
+    transferts,
+)
 
 
 @asynccontextmanager
@@ -38,4 +47,9 @@ app.include_router(transferts.router, prefix="/commercants/{commercant_id}/trans
 app.include_router(alertes.router, prefix="/commercants/{commercant_id}/alertes", tags=["alertes"])
 app.include_router(
     reservations.router, prefix="/commercants/{commercant_id}/reservations", tags=["reservations"]
+)
+app.include_router(
+    commandes_fournisseurs.router,
+    prefix="/commercants/{commercant_id}/commandes-fournisseurs",
+    tags=["commandes-fournisseurs"],
 )
